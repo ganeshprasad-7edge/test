@@ -2,6 +2,21 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
+project.ext.envConfigFiles = [
+    release: ".env",
+    debug: ".env",
+    developDebug: ".env.develop",
+    developRelease: ".env.develop",
+    qaDebug: ".env.qa",
+    qaRelease: ".env.qa",
+    preprodDebug: ".env.preprod",
+    preprodRelease: ".env.preprod",
+    productionDebug: ".env",
+    productionRelease: ".env"
+]
+apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"
+
+
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
 /**
@@ -88,8 +103,29 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace "com.test"
+
+    flavorDimensions = ["appType"]
+    productFlavors {
+        develop {
+            dimension "appType"
+            applicationIdSuffix ".develop"
+        }
+        qa {
+            dimension "appType"
+            applicationIdSuffix ".qa"
+        }
+        preprod {
+            dimension "appType"
+            applicationIdSuffix ".preprod"
+        }
+        production {
+            dimension "appimType"
+        }
+    }
+
     defaultConfig {
         applicationId "com.test"
+        resValue "string", "build_config_package", "com.test"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
