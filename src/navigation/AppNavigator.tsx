@@ -4,11 +4,13 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import SplashScreen from '../modules/splash/SplashScreen';
 import LoginScreen from '../modules/login/LoginScreen';
+import RegistrationScreen from '../modules/registration/RegistrationScreen';
 import HomeScreen from '../modules/home/HomeScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
   Login: undefined;
+  Registration: undefined;
   Home: undefined;
 };
 
@@ -20,10 +22,12 @@ export const AppNavigator: React.FC = () => (
       initialRouteName="Splash"
       screenOptions={{
         headerShown: false,
+        animation: 'slide_from_right',
       }}
     >
       <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Registration" component={RegistrationScreen} />
       <Stack.Screen name="Home" component={HomeScreen} />
     </Stack.Navigator>
   </NavigationContainer>
