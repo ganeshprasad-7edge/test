@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -44,6 +45,45 @@ const GoogleIcon = () => (
   </Svg>
 );
 
+// Eye Icon Components for Password Visibility
+const EyeIcon = () => (
+  <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+      stroke={COLORS.gray500}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"
+      stroke={COLORS.gray500}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+const EyeOffIcon = () => (
+  <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+      stroke={COLORS.gray500}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M1 1l22 22"
+      stroke={COLORS.gray500}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
 export const LoginScreen: React.FC = () => {
   const navigation = useNavigation();
   const { 
@@ -55,6 +95,7 @@ export const LoginScreen: React.FC = () => {
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [formErrors, setFormErrors] = useState<{ email?: string; password?: string }>({});
 
   const validateForm = (): boolean => {
@@ -118,7 +159,8 @@ export const LoginScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -163,17 +205,26 @@ export const LoginScreen: React.FC = () => {
             {/* Password Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Password</Text>
-              <TextInput
-                style={[
-                  styles.input, 
-                  (formErrors.password || error) && styles.inputError
-                ]}
-                placeholder="Enter your password"
-                placeholderTextColor={COLORS.gray400}
-                secureTextEntry
-                value={password}
-                onChangeText={handlePasswordChange}
-              />
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={[
+                    styles.passwordInput, 
+                    (formErrors.password || error) && styles.inputError
+                  ]}
+                  placeholder="Enter your password"
+                  placeholderTextColor={COLORS.gray400}
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={handlePasswordChange}
+                />
+                <TouchableOpacity
+                  style={styles.eyeIcon}
+                  onPress={() => setShowPassword(!showPassword)}
+                  activeOpacity={0.7}
+                >
+                  {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                </TouchableOpacity>
+              </View>
               {formErrors.password && (
                 <Text style={styles.fieldErrorText}>{formErrors.password}</Text>
               )}
@@ -303,6 +354,29 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.base,
     fontFamily: FONTS.regular,
     color: COLORS.gray900,
+  },
+  passwordInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  passwordInput: {
+    flex: 1,
+    height: 52,
+    backgroundColor: COLORS.gray50,
+    borderWidth: 1,
+    borderColor: COLORS.gray200,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingHorizontal: SPACING.base,
+    paddingRight: SPACING['3xl'],
+    fontSize: FONT_SIZES.base,
+    fontFamily: FONTS.regular,
+    color: COLORS.gray900,
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: SPACING.base,
+    padding: SPACING.xs,
   },
   inputError: {
     borderColor: COLORS.error,

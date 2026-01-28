@@ -6,7 +6,9 @@ import {
   Animated,
   Dimensions,
   Image,
+  StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useSplashStore } from './splashStore';
 import { COLORS, FONTS, FONT_SIZES } from '../../constants/theme';
@@ -107,7 +109,8 @@ export const SplashScreen: React.FC = () => {
   });
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       {/* Background gradient effect */}
       <View style={styles.backgroundGradient} />
 
@@ -150,7 +153,7 @@ export const SplashScreen: React.FC = () => {
       <Animated.View style={[styles.footer, { opacity: fadeAnim }]}>
         <Text style={styles.footerText}>Version 1.0.0</Text>
       </Animated.View>
-    </View>
+    </SafeAreaView>
   );
 };
 

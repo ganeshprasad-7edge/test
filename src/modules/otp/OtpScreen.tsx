@@ -10,6 +10,7 @@ import {
   Keyboard,
   Alert,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -94,39 +95,74 @@ export const OtpScreen: React.FC = () => {
   // Handle OTP input change
   const handleOtpChange = useCallback((value: string, index: number) => {
     // Only allow digits
-    const digit = value.replace(/[^0-9]/g, '');
+    const digits = value.replace(/[^0-9]/g, '');
     
-    if (digit.length <= 1) {
+    // Detect paste: if pasted value has multiple digits (length >= OTP_LENGTH or length > 1)
+    if (digits.length >= OTP_LENGTH) {
+      // Handle paste of full OTP (or more than OTP_LENGTH)
+      const otpDigits = digits.slice(0, OTP_LENGTH).split('');
+      setOtp(otpDigits);
+      inputRefs.current[OTP_LENGTH - 1]?.focus();
+      setFocusedIndex(OTP_LENGTH - 1);
+      Keyboard.dismiss();
+      
+      // Auto-verify if we have complete OTP
+      const completeOtp = otpDigits.join('');
+      if (completeOtp.length === OTP_LENGTH) {
+        setTimeout(() => {
+          handleVerifyOtp(completeOtp);
+        }, 100);
+      }
+      return;
+    } else if (digits.length > 1) {
+      // Handle paste of partial OTP (2-5 digits)
       const newOtp = [...otp];
-      newOtp[index] = digit;
+      for (let i = 0; i < digits.length && (index + i) < OTP_LENGTH; i++) {
+        newOtp[index + i] = digits[i];
+      }
+      setOtp(newOtp);
+      
+      // Focus on the next empty field or last filled field
+      const nextIndex = Math.min(index + digits.length, OTP_LENGTH - 1);
+      inputRefs.current[nextIndex]?.focus();
+      setFocusedIndex(nextIndex);
+      
+      // Auto-verify if all fields are filled
+      const completeOtp = newOtp.join('');
+      if (completeOtp.length === OTP_LENGTH) {
+        Keyboard.dismiss();
+        setTimeout(() => {
+          handleVerifyOtp(completeOtp);
+        }, 100);
+      }
+      return;
+    }
+    
+    // Single digit input (normal typing)
+    if (digits.length <= 1) {
+      const newOtp = [...otp];
+      newOtp[index] = digits;
       setOtp(newOtp);
 
       // Move to next input if digit entered
-      if (digit && index < OTP_LENGTH - 1) {
+      if (digits && index < OTP_LENGTH - 1) {
         inputRefs.current[index + 1]?.focus();
         setFocusedIndex(index + 1);
       }
 
       // Auto-submit when all digits are entered
-      if (digit && index === OTP_LENGTH - 1) {
+      if (digits && index === OTP_LENGTH - 1) {
         const completeOtp = newOtp.join('');
         if (completeOtp.length === OTP_LENGTH) {
           Keyboard.dismiss();
           handleVerifyOtp(completeOtp);
         }
       }
-    } else if (digit.length === OTP_LENGTH) {
-      // Handle paste of full OTP
-      const digits = digit.split('');
-      setOtp(digits);
-      inputRefs.current[OTP_LENGTH - 1]?.focus();
-      Keyboard.dismiss();
-      handleVerifyOtp(digit);
     }
   }, [otp]);
 
   // Handle backspace
-  const handleKeyPress = useCallback((event: any, index: number) => {
+  const handleKeyPress = useCallback((event: { nativeEvent: { key: string } }, index: number) => {
     if (event.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
       const newOtp = [...otp];
       newOtp[index - 1] = '';
@@ -190,7 +226,8 @@ export const OtpScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -203,7 +240,7 @@ export const OtpScreen: React.FC = () => {
             </View>
             <Text style={styles.title}>Verify Your Email</Text>
             <Text style={styles.subtitle}>
-              We've sent a 6-digit verification code to
+              We&apos;ve sent a 6-digit verification code to
             </Text>
             <Text style={styles.contactText}>{maskedEmail}</Text>
           </View>
@@ -214,20 +251,22 @@ export const OtpScreen: React.FC = () => {
               {Array(OTP_LENGTH).fill(0).map((_, index) => (
                 <TextInput
                   key={index}
-                  ref={(ref) => (inputRefs.current[index] = ref)}
+                  ref={(ref) => {
+                    inputRefs.current[index] = ref;
+                  }}
                   style={[
                     styles.otpInput,
                     focusedIndex === index && styles.otpInputFocused,
                     otp[index] && styles.otpInputFilled,
                     error && styles.otpInputError,
                   ]}
-                  value={otp[index]}
+                  value={otp[index] || ''}
                   onChangeText={(value) => handleOtpChange(value, index)}
                   onKeyPress={(e) => handleKeyPress(e, index)}
                   onFocus={() => handleFocus(index)}
                   keyboardType="number-pad"
-                  maxLength={1}
-                  selectTextOnFocus
+                  maxLength={index === 0 ? OTP_LENGTH : 1}
+                  selectTextOnFocus={index === 0 ? false : true}
                   caretHidden
                 />
               ))}
@@ -264,7 +303,7 @@ export const OtpScreen: React.FC = () => {
 
           {/* Resend Section */}
           <View style={styles.resendSection}>
-            <Text style={styles.resendText}>Didn't receive the code? </Text>
+            <Text style={styles.resendText}>Didn&apos;t receive the code? </Text>
             {canResend ? (
               <TouchableOpacity onPress={handleResendOtp}>
                 <Text style={styles.resendLink}>Resend OTP</Text>

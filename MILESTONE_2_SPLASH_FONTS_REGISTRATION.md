@@ -256,6 +256,8 @@ src/modules/registration/RegistrationScreen.tsx
 | Last Name | Text | Required, min 2 characters |
 | Phone Number | Phone | Required, exactly 10 digits |
 | Email Address | Email | Required, valid email format |
+| Password | Password | Required, min 8 chars with uppercase, lowercase & number |
+| **Password Visibility** | Toggle | Eye icon to show/hide password |
 
 ### 3.2 Form State Management
 
@@ -303,6 +305,42 @@ const [errors, setErrors] = useState<FormErrors>({});
   )}
 </View>
 ```
+
+### 3.3.1 Password Input with Visibility Toggle
+
+```tsx
+<View style={styles.inputGroup}>
+  <Text style={styles.label}>Password</Text>
+  <View style={styles.passwordInputContainer}>
+    <TextInput
+      style={[styles.passwordInput, errors.password && styles.inputError]}
+      placeholder="Create a password"
+      placeholderTextColor={COLORS.gray400}
+      value={formData.password}
+      onChangeText={(value) => handleInputChange('password', value)}
+      secureTextEntry={!showPassword}
+      autoCapitalize="none"
+      autoCorrect={false}
+    />
+    <TouchableOpacity
+      style={styles.eyeIcon}
+      onPress={() => setShowPassword(!showPassword)}
+      activeOpacity={0.7}
+    >
+      {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+    </TouchableOpacity>
+  </View>
+  {errors.password && (
+    <Text style={styles.errorText}>{errors.password}</Text>
+  )}
+</View>
+```
+
+**Password Visibility Features:**
+- Eye icon button on the right side of password input
+- Toggles between showing and hiding password text
+- Icons: Eye (visible) when password is hidden, Eye-off (hidden) when password is visible
+- Works on both Login and Registration screens
 
 ### 3.4 Keyboard Handling
 
@@ -747,4 +785,6 @@ src/
 - [x] Navigation updates
 - [x] Login screen redesign
 - [x] Keyboard-aware scrolling
+- [x] Password visibility toggle (eye icon) on Login screen
+- [x] Password visibility toggle (eye icon) on Registration screen
 

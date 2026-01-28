@@ -27,8 +27,10 @@ A comprehensive guide covering user registration/login implementation, Google Si
 | Email/Password Auth | AWS Cognito Authentication with email and password | ✅ |
 | Google Sign-In | OAuth 2.0 integration with Google | ✅ |
 | OTP Validation | 6-digit OTP input with visual feedback | ✅ |
+| **OTP Paste Support** | Paste full OTP code to auto-fill all fields | ✅ |
 | OTP Resend Timer | 30-second countdown for resending OTP | ✅ |
 | User Profile Storage | Store user data in AsyncStorage | ✅ |
+| **Session Persistence** | App remembers login state after restart | ✅ |
 | Cognito Token Management | Access and ID token handling | ✅ |
 
 ### Dependencies Added
@@ -421,6 +423,68 @@ const handleResendOtp = async () => {
 };
 ```
 
+### 6.5 OTP Paste Functionality
+
+The OTP screen now supports pasting the full OTP code. When a user copies a 6-digit code and pastes it into any OTP input field, all 6 fields are automatically filled.
+
+**Implementation:**
+
+```typescript
+const handleOtpChange = useCallback((value: string, index: number) => {
+  // Only allow digits
+  const digits = value.replace(/[^0-9]/g, '');
+  
+  // Detect paste: if pasted value has multiple digits
+  if (digits.length >= OTP_LENGTH) {
+    // Handle paste of full OTP (6+ digits)
+    const otpDigits = digits.slice(0, OTP_LENGTH).split('');
+    setOtp(otpDigits);
+    inputRefs.current[OTP_LENGTH - 1]?.focus();
+    Keyboard.dismiss();
+    
+    // Auto-verify if we have complete OTP
+    const completeOtp = otpDigits.join('');
+    if (completeOtp.length === OTP_LENGTH) {
+      setTimeout(() => {
+        handleVerifyOtp(completeOtp);
+      }, 100);
+    }
+    return;
+  } else if (digits.length > 1) {
+    // Handle paste of partial OTP (2-5 digits)
+    const newOtp = [...otp];
+    for (let i = 0; i < digits.length && (index + i) < OTP_LENGTH; i++) {
+      newOtp[index + i] = digits[i];
+    }
+    setOtp(newOtp);
+    
+    // Focus on the next empty field
+    const nextIndex = Math.min(index + digits.length, OTP_LENGTH - 1);
+    inputRefs.current[nextIndex]?.focus();
+    
+    // Auto-verify if all fields are filled
+    const completeOtp = newOtp.join('');
+    if (completeOtp.length === OTP_LENGTH) {
+      Keyboard.dismiss();
+      setTimeout(() => {
+        handleVerifyOtp(completeOtp);
+      }, 100);
+    }
+    return;
+  }
+  
+  // Single digit input (normal typing)
+  // ... rest of the logic
+}, [otp]);
+```
+
+**Features:**
+- First input field accepts up to 6 characters to detect paste
+- Full OTP paste (6 digits): Auto-fills all fields and auto-verifies
+- Partial OTP paste (2-5 digits): Distributes digits from current position
+- Auto-verification when all 6 digits are entered
+- Works seamlessly with normal single-digit typing
+
 ---
 
 ## 7. Auth Store (State Management)
@@ -465,6 +529,7 @@ loginWithEmail: async (email, password) => {
   try {
     const profile = await signInWithEmail(email, password);
     set({ userProfile: profile, isAuthenticated: true });
+    await get().saveUserToStorage(); // Persist to AsyncStorage
   } catch (error) {
     let errorMessage = 'Login failed';
     
@@ -482,6 +547,73 @@ loginWithEmail: async (email, password) => {
 };
 ```
 
+### 7.3 Session Persistence
+
+The app now remembers the user's login state after closing and reopening the app. This is achieved through:
+
+1. **Saving user profile to AsyncStorage** after successful login
+2. **Checking session on app startup** via SplashScreen
+3. **Validating Cognito session** and restoring user state
+
+**Session Check Implementation:**
+
+```typescript
+// src/modules/splash/splashApi.ts
+export const checkSession = async (): Promise<Session> => {
+  try {
+    // First, check if there's a valid Cognito session
+    const isAuth = await checkIsAuthenticated();
+    
+    if (isAuth) {
+      // User has a valid Cognito session, get their profile
+      const profile = await getUserProfile();
+      
+      // Update authStore with the profile
+      const authStore = useAuthStore.getState();
+      authStore.setUserProfile(profile);
+      await authStore.saveUserToStorage();
+      
+      return {
+        isAuthenticated: true,
+        userId: profile.userId,
+        token: profile.idToken || profile.accessToken,
+      };
+    }
+    
+    // If no valid Cognito session, check AsyncStorage
+    const storedProfile = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
+    if (storedProfile) {
+      const profile = JSON.parse(storedProfile);
+      const isValidSession = await checkIsAuthenticated();
+      
+      if (isValidSession) {
+        const authStore = useAuthStore.getState();
+        authStore.setUserProfile(profile);
+        return {
+          isAuthenticated: true,
+          userId: profile.userId,
+          token: profile.idToken || profile.accessToken,
+        };
+      } else {
+        // Session expired, clear stored data
+        await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
+      }
+    }
+    
+    return { isAuthenticated: false };
+  } catch (error) {
+    return { isAuthenticated: false };
+  }
+};
+```
+
+**How It Works:**
+1. On app startup, SplashScreen calls `checkSession()`
+2. `checkSession()` verifies if there's a valid AWS Cognito session
+3. If authenticated, it loads the user profile and updates the authStore
+4. SplashScreen navigates to Home if authenticated, Login if not
+5. User profile is persisted in AsyncStorage for faster subsequent checks
+
 ---
 
 ## 8. Navigation Flow
@@ -498,22 +630,25 @@ loginWithEmail: async (email, password) => {
        Check Session
        │
        ├── Authenticated ──────────────────────────┐
+       │   (Session Persisted)                     │
        │                                           │
        ▼                                           │
 ┌──────────────┐     ┌──────────────┐              │
 │    Login     │◄───►│ Registration │              │
-│              │     │              │              │
+│  (Password   │     │  (Password   │              │
+│   Visibility)│     │   Visibility)│              │
 └──────┬───────┘     └──────┬───────┘              │
        │                    │                      │
        │              ┌─────▼─────┐                │
        │              │    OTP    │                │
-       │              │ Validation│                │
+       │              │ (Paste    │                │
+       │              │  Support) │                │
        │              └─────┬─────┘                │
        │                    │                      │
        ▼                    ▼                      ▼
 ┌──────────────────────────────────────────────────┐
 │                     Home                         │
-│                                                  │
+│         (Session Persisted on Restart)           │
 └──────────────────────────────────────────────────┘
 ```
 
@@ -548,6 +683,7 @@ Features:
 
 Features:
 - Email/password login
+- **Password visibility toggle** (eye icon to show/hide password)
 - Google Sign-In button
 - "or continue with" divider
 - Cognito error handling
@@ -556,7 +692,9 @@ Features:
 
 Features:
 - 6 individual OTP input boxes
+- **OTP Paste Functionality**: Paste full 6-digit code to auto-fill all fields
 - Auto-focus navigation
+- Auto-verification when all digits are entered
 - 30-second resend timer
 - Static OTP for testing (123456)
 
@@ -608,10 +746,12 @@ src/
 - [x] Zustand auth store with persistence
 - [x] OTP screen with 6 input boxes
 - [x] Auto-focus between OTP inputs
+- [x] **OTP paste functionality** (paste full code to auto-fill)
 - [x] OTP resend timer (30 seconds)
 - [x] Static OTP validation for testing
 - [x] Registration screen with Cognito
 - [x] Login screen with Google Sign-In
+- [x] **Session persistence** (app remembers login state)
 - [x] Navigation flow with OTP screen
 - [x] Error handling throughout
 
