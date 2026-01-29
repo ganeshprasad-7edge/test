@@ -7,6 +7,7 @@ import LoginScreen from '../modules/login/LoginScreen';
 import RegistrationScreen from '../modules/registration/RegistrationScreen';
 import OtpScreen from '../modules/otp/OtpScreen';
 import HomeScreen from '../modules/home/HomeScreen';
+import ChatScreen from '../modules/chat/ChatScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -17,6 +18,7 @@ export type RootStackParamList = {
     email?: string;
   };
   Home: undefined;
+  Chat: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -41,6 +43,13 @@ export const AppNavigator: React.FC = () => (
         }}
       />
       <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen 
+        name="Chat" 
+        component={ChatScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
     </Stack.Navigator>
   </NavigationContainer>
 );

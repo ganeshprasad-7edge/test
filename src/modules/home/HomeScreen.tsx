@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, StatusBar, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/authStore';
@@ -25,10 +25,17 @@ export const HomeScreen: React.FC = () => {
     }
   };
 
+  const handleSupportChat = () => {
+    navigation.navigate('Chat' as never);
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <View style={styles.avatarCircle}>
@@ -46,6 +53,22 @@ export const HomeScreen: React.FC = () => {
             <Text style={styles.email}>{userProfile.email}</Text>
           )}
         </View>
+
+        {/* Support Chat Card */}
+        <TouchableOpacity
+          style={styles.supportCard}
+          onPress={handleSupportChat}
+          activeOpacity={0.8}
+        >
+          <View style={styles.supportIconContainer}>
+            <Text style={styles.supportIcon}>💬</Text>
+          </View>
+          <View style={styles.supportCardContent}>
+            <Text style={styles.supportCardTitle}>Support Chat</Text>
+            <Text style={styles.supportCardSubtitle}>Get help from our support team</Text>
+          </View>
+          <Text style={styles.supportCardArrow}>→</Text>
+        </TouchableOpacity>
 
         {/* User Info Card */}
         <View style={styles.infoCard}>
@@ -98,7 +121,7 @@ export const HomeScreen: React.FC = () => {
             <Text style={styles.signOutText}>Sign Out</Text>
           )}
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -109,9 +132,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     padding: SPACING.xl,
-    justifyContent: 'center',
   },
   welcomeSection: {
     alignItems: 'center',
@@ -152,6 +174,53 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.base,
     fontFamily: FONTS.regular,
     color: COLORS.gray500,
+  },
+  supportCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.lg,
+    marginBottom: SPACING.lg,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: COLORS.gray200,
+  },
+  supportIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.primaryLight + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.md,
+  },
+  supportIcon: {
+    fontSize: 28,
+  },
+  supportCardContent: {
+    flex: 1,
+  },
+  supportCardTitle: {
+    fontSize: FONT_SIZES.md,
+    fontFamily: FONTS.semiBold,
+    color: COLORS.gray900,
+    marginBottom: SPACING.xs / 2,
+  },
+  supportCardSubtitle: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.regular,
+    color: COLORS.gray500,
+  },
+  supportCardArrow: {
+    fontSize: FONT_SIZES.xl,
+    fontFamily: FONTS.bold,
+    color: COLORS.primary,
+    marginLeft: SPACING.sm,
   },
   infoCard: {
     backgroundColor: COLORS.white,
@@ -199,6 +268,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.lg,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: SPACING.xl,
   },
   signOutButtonDisabled: {
     opacity: 0.6,
